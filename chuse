@@ -1,0 +1,47 @@
+#!/usr/bin/python3
+#-*-coding:UTF-8-*-
+# Distributed under the terms of the GNU General Public License v2
+
+"""chuse is a utility for Portage package manager (namely Gentoo Linux base systems). It enables you
+to edit USE flags for a particular ebuild. It is based on emod (https://github.com/Pyntony/emod), a
+tool I started to develop for the same purpose but that I never ended.
+
+"emod" was originally developped to avoid forgetting a ">" when running "echo app-dummy/example -qt
+gtk >> /etc/portage/package.use" for instance and the overwrite the file. 
+
+I decided to start over because I want this tool to be as much simple as possible. "emod" handles
+package.{accept_keywords,env,keywords,license,mask,properties,unmask,use}. Basically this tool will
+only be useful for package.use. Other files are rarely modified, and editing them manually would
+probably do the job quite good enough.
+
+Usage:
+    chuse <atom> [<modifier><flag> ...] [--because <reason>]
+
+    atom:
+        [version-selector]<ebuild-cat>/<ebuild-pkg>[-<version>]
+        Obviously 'version-selector' and 'version' should never be set without the other.
+    version-selector:
+        One of : "=", ">", "<", ">=", "<=".
+    ebuild-cat:
+        An ebuild category (validity won't be checked).
+    ebuild-pkg:
+        An ebuild package (validity won't be checked).
+    version:
+        A version of the underlying package (validity won't be checked).
+    modifier:
+        One of : "-", "+", "%" (% means reset default).
+    flag:
+        A USE flag (validity won't be checked).
+    reason:
+        The reason why you changed these USE flags (so that you remember why you set this and if now
+        you can reset default for instance).
+
+"""
+
+import sys
+
+if __name__ == '__main__':
+    print(sys.argv[1])
+
+
+
