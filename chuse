@@ -38,10 +38,47 @@ Usage:
 
 """
 
-import sys
+import re, sys
+
+def error(message):
+    sys.stderr.write("Error: %s\n" % message)
+    sys.exit(1)
+
+def parse_atom(atom):
+    parts = ['selector', 'cat', 'pkg', 'version', 'slot']
+    selector_ptrn = r'(?P<selector>>=|<=|<|=|>)'
+    cat_ptrn = r'(?P<cat>[a-z0-9]+(-[a-z0-9]+)?)'
+    pkg_ptrn = r'(?P<pkg>[a-z0-9]+(-[a-z0-9]+)*)'
+    version_ptrn = r'(?P<version>[0-9]+(\.[0-9]+)*(-r[0-9]+)?)'
+    slot_ptrn = r'(?P<slot>.*)'
+
+    pattern = '^'+selector_ptrn+'?'+cat_ptrn+'/'+pkg_ptrn+'(-'+version_ptrn+')?(:'+slot_ptrn+')?$'
+
+    match = re.match(pattern, atom)
+
+    if not match:
+        error("Invalid atom!")
+
+    result = {'raw': atom}
+    for part in parts:
+        result[part] = match.group(part)
+
+    return result
 
 if __name__ == '__main__':
-    print(sys.argv[1])
+    if len(sys.argv) < 2:
+        error("Expected at least one argument!")
+    atom = sys.argv[1]
+    flags = []
+    reason = None
+    iarg = 2
+    while iarg < len(sys.argv) and sys.argv[iarg] != '--because':
+        flags.append(sys.argv[iarg])
+        iarg += 1
+    if iarg < len(sys.argv):
+        reason = ' '.join(sys.argv[iarg+1:])
 
+    atom = parse_atom(atom)
 
+    print("Atom: %r" % atom)
 
