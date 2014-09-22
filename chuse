@@ -40,6 +40,8 @@ Usage:
 
 import re, sys
 
+PACKAGE_USE_FILE_PATTERN = '/etc/portage/package.use/%(cat)s/%(pkg)'
+
 def error(message):
     sys.stderr.write("Error: %s\n" % message)
     sys.exit(1)
@@ -65,20 +67,40 @@ def parse_atom(atom):
 
     return result
 
+def read_current_flags(atom):
+    filename = PACKAGE_USE_FILE_PATTERN % atom
+    try:
+        os.makedirs(os.path.dirname(filename))
+    except FileExistsError:
+        pass # Then no need to create it
+
+    try:
+        with open(PACKAGE_USE_FILE_PATTERN % atom) as f:
+            pass # This one is just to avoid syntax error while coding
+    except FileNotFoundError:
+        pass # Then there is no flag for now
+
 if __name__ == '__main__':
-    if len(sys.argv) < 2:
+    try;
+        atom = sys.argv[1]
+    except IndexError:
         error("Expected at least one argument!")
-    atom = sys.argv[1]
-    flags = []
     reason = None
+    flags = []
+
     iarg = 2
-    while iarg < len(sys.argv) and sys.argv[iarg] != '--because':
-        flags.append(sys.argv[iarg])
-        iarg += 1
-    if iarg < len(sys.argv):
-        reason = ' '.join(sys.argv[iarg+1:])
+    try:
+        while sys.argv[iarg] != '--because':
+            flags.append(sys.argv[iarg])
+            iarg += 1
+    except IndexError:
+        pass # No reason given
+    else:
+        reason = ' '.join(sys.argv[iarg+1:]) or "Because I can!"
 
     atom = parse_atom(atom)
+
+    cur_flags = read_current_flags(atom)
 
     print("Atom: %r" % atom)
 
