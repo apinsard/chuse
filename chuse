@@ -40,13 +40,24 @@ Usage:
 
 import re, sys
 
+class AtomError(Exception):
+    pass
+
 PACKAGE_USE_FILE_PATTERN = '/etc/portage/package.use/%(cat)s/%(pkg)'
 
 def error(message):
     sys.stderr.write("Error: %s\n" % message)
     sys.exit(1)
 
-def parse_atom(atom):
+def parse_atom(atom: "A raw atom as a string") -> "The atom parts as a dict":
+    """Parse the given atom and split it to extract:
+        
+        - the version selector ;
+        - the category name ;
+        - the package name ;
+        - the version ;
+        - the slot.
+    """
     parts = ['selector', 'cat', 'pkg', 'version', 'slot']
     selector_ptrn = r'(?P<selector>>=|<=|<|=|>)'
     cat_ptrn = r'(?P<cat>[a-z0-9]+(-[a-z0-9]+)?)'
@@ -59,7 +70,7 @@ def parse_atom(atom):
     match = re.match(pattern, atom)
 
     if not match:
-        error("Invalid atom!")
+        raise AtomError("Invalid atom!")
 
     result = {'raw': atom}
     for part in parts:
@@ -67,18 +78,32 @@ def parse_atom(atom):
 
     return result
 
-def read_current_flags(atom):
-    filename = PACKAGE_USE_FILE_PATTERN % atom
-    try:
-        os.makedirs(os.path.dirname(filename))
-    except FileExistsError:
-        pass # Then no need to create it
+def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)")
+        -> "The current flags set by the user for this atom as a list of tuples":
+    """Look for existing flags formerly set by the user in /etc/portage/package.use
+
+    USE flags are returned as a list of 2-uples in the form ('+'|'-', 'flagname')
+    Eg. [('+', 'python'), ('-', 'php')]
+    """
+    useflags = []
 
     try:
+        """Fetch a line that matches the given atom"""
         with open(PACKAGE_USE_FILE_PATTERN % atom) as f:
-            pass # This one is just to avoid syntax error while coding
+            pattern = re.compile('^'+ atom['raw'] +r'\s+([^\s].*)$')
+            for line in f.readline():
+                if match = pattern.match(line):
+                    raw_flags = re.sub(r'\s+', ' ', match.group(1))
+                    for flag in raw_flags.split():
+                        if flag[0] == '-':
+                            useflags.append(('-', flag[1:]))
+                        else:
+                            useflags.append(('-', flag))
+                    break # Another matching line would be foolish
     except FileNotFoundError:
         pass # Then there is no flag for now
+
+    return useflags
 
 if __name__ == '__main__':
     try;
@@ -98,7 +123,10 @@ if __name__ == '__main__':
     else:
         reason = ' '.join(sys.argv[iarg+1:]) or "Because I can!"
 
-    atom = parse_atom(atom)
+    try:
+        atom = parse_atom(atom)
+    except AtomError as e:
+        error(e.message)
 
     cur_flags = read_current_flags(atom)
 
