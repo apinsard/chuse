@@ -39,15 +39,44 @@ Usage:
 """
 
 import re, sys
+from datetime import datetime
 
 class AtomError(Exception):
     pass
 
-PACKAGE_USE_FILE_PATTERN = '/etc/portage/package.use/%(cat)s/%(pkg)'
+class PackageUseError(Exception):
+    pass
+
+PACKAGE_USE_FILE_PATTERN = '/etc/portage/package.use/%(cat)s/%(pkg)s'
+
+USE_FLAG_MODIFIERS = '+-%'
+
+DATETIME_FORMAT = "[%Y-%m-%dT%H:%M]"
+
+COLORS = True
+
+def _colorize(text, color_code, bold=False):
+    start = "\033["
+    if bold:
+        start += "1;"
+    start += str(color_code)+"m"
+
+    end = "\033[0m"
+
+    return start + text + end
+
+def _red(text, bold=False):
+    return _colorize(text, 31, bold)
+
+def _orange(text, bold=False):
+    return _colorize(text, 33, bold)
 
 def error(message):
-    sys.stderr.write("Error: %s\n" % message)
+    sys.stderr.write(_red("Error: %s\n" % message, bold=True))
     sys.exit(1)
+
+def warning(message):
+    sys.stderr.write(_orange("Warning: %s\n" % message))
 
 def parse_atom(atom: "A raw atom as a string") -> "The atom parts as a dict":
     """Parse the given atom and split it to extract:
@@ -78,8 +107,8 @@ def parse_atom(atom: "A raw atom as a string") -> "The atom parts as a dict":
 
     return result
 
-def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)")
-        -> "The current flags set by the user for this atom as a list of tuples":
+def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)"
+        )-> "The current flags set by the user for this atom as a list of tuples":
     """Look for existing flags formerly set by the user in /etc/portage/package.use
 
     USE flags are returned as a list of 2-uples in the form ('+'|'-', 'flagname')
@@ -92,31 +121,92 @@ def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)")
         with open(PACKAGE_USE_FILE_PATTERN % atom) as f:
             pattern = re.compile('^'+ atom['raw'] +r'\s+([^\s].*)$')
             for line in f.readline():
-                if match = pattern.match(line):
+                match = pattern.match(line)
+                if match:
                     raw_flags = re.sub(r'\s+', ' ', match.group(1))
                     for flag in raw_flags.split():
                         if flag[0] == '-':
                             useflags.append(('-', flag[1:]))
                         else:
-                            useflags.append(('-', flag))
+                            useflags.append(('+', flag))
                     break # Another matching line would be foolish
     except FileNotFoundError:
         pass # Then there is no flag for now
+    except NotADirectory:
+        raise PackageUseError("Incompatible package.use hierarchy")
 
     return useflags
 
+def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)"
+        , flags: "The USE flags to write (generated with `merge_flags`)"
+        , comment: "A comment about the changes made"):
+    comment = re.sub('(^)', '# ', comment, flags=re.MULTILINE)
+
+    try:
+        with open(PACKAGE_USE_FILE_PATTERN % atom, 'r+') as f:
+            pattern = re.compile('^'+ atom['raw'] +r'\s+([^\s].*)$')
+            for line in f.readline():
+                match = pattern.match(line)
+                if match:
+                    raw_flags = re.sub(r'\s+', ' ', match.group(1))
+                    for flag in raw_flags.split():
+                        if flag[0] == '-':
+                            useflags.append(('-', flag[1:]))
+                        else:
+                            useflags.append(('+', flag))
+
+                    break # What would you do then ?
+    except FileNotFoundError:
+        pass # Then there is no flag for now
+    except NotADirectory:
+        raise PackageUseError("Incompatible package.use hierarchy")
+
+
+def merge_flags(cur_flags: "list of current flags", new_flags: "list flags to edit"
+        )-> 'Current flags "patched" with new ones as a dict {flag_name: modifier}':
+    useflags = {}
+    verbose_changes = []
+
+    for flag in cur_flags:
+        useflags[flag[1]] = flag[0]
+
+    for flag in new_flags:
+        if flag[0] == '%':
+            try:
+                del useflags[flag[1]]
+            except KeyError:
+                warning("You did not formerly set the %s use flag. No action needed" % flag[1])
+            else:
+                verbose_changes[] = "Reset "+ flag[1]
+        else:
+            useflags[flag[1]] = flag[0]
+            if flag[0] == '+':
+                verbose_changes[] = "Set "+ flag[1]
+            else:
+                verbose_changes[] = "Unset "+ flag[1]
+
+    return useflags, ', '.join(verbose_changes)
+
 if __name__ == '__main__':
-    try;
+    try:
         atom = sys.argv[1]
     except IndexError:
         error("Expected at least one argument!")
+
     reason = None
     flags = []
 
     iarg = 2
     try:
         while sys.argv[iarg] != '--because':
-            flags.append(sys.argv[iarg])
+            flag = sys.argv[iarg]
+            modifier = flag[0]
+            flag = (modifier, flag[1:])
+
+            if modifier not in USE_FLAG_MODIFIERS:
+                error("Invalid use flag modifier, expected one of '%s' before '%s'" % flag)
+
+            flags.append(flag)
             iarg += 1
     except IndexError:
         pass # No reason given
@@ -128,7 +218,17 @@ if __name__ == '__main__':
     except AtomError as e:
         error(e.message)
 
-    cur_flags = read_current_flags(atom)
+    try:
+        cur_flags = read_current_flags(atom)
+    except PackageUseError as e:
+        error(e.message)
 
-    print("Atom: %r" % atom)
+    new_flags, comment = merge_flags(cur_flags, flags)
+
+    comment = datetime.today().strftime(DATETIME_FORMAT) +' '+ comment + '\n'+ reason
+
+    try:
+        write_changes(atom, new_flags, comment)
+    except PackageUseError as e:
+        error(e.message)
 
