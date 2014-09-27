@@ -38,7 +38,7 @@ Usage:
 
 """
 
-import re, sys
+import os, re, sys
 from datetime import datetime
 
 class AtomError(Exception):
@@ -140,27 +140,43 @@ def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)"
 def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)"
         , flags: "The USE flags to write (generated with `merge_flags`)"
         , comment: "A comment about the changes made"):
-    comment = re.sub('(^)', '# ', comment, flags=re.MULTILINE)
+    new_line = re.sub('(^)', '# ', comment, flags=re.MULTILINE)
+    
+    new_line += "\n"+atom['raw']
+    for name,mod in flags.items():
+        if mod == '+':
+            new_line += " "+name
+        else:
+            new_line += " "+mod+name
+
+    file_lines = []
+    found_existing_atom = False
+
+    filename = PACKAGE_USE_FILE_PATTERN % atom
 
     try:
-        with open(PACKAGE_USE_FILE_PATTERN % atom, 'r+') as f:
+        with open(filename) as f:
             pattern = re.compile('^'+ atom['raw'] +r'\s+([^\s].*)$')
             for line in f.readline():
-                match = pattern.match(line)
-                if match:
-                    raw_flags = re.sub(r'\s+', ' ', match.group(1))
-                    for flag in raw_flags.split():
-                        if flag[0] == '-':
-                            useflags.append(('-', flag[1:]))
-                        else:
-                            useflags.append(('+', flag))
-
-                    break # What would you do then ?
+                if pattern.match(line):
+                    file_lines.append(new_line)
+                    found_existing_atom = True
+                else:
+                    file_lines.append(line)
     except FileNotFoundError:
-        pass # Then there is no flag for now
+        # Then it will be new and we should create possible parent dirs
+        try:
+            os.makedirs(os.path.dirname(filename))
+        except FileExistsError:
+            pass # Then we don't need to create it
     except NotADirectory:
         raise PackageUseError("Incompatible package.use hierarchy")
 
+    if not found_existing_atom:
+        file_lines.append(new_line)
+
+    with open(filename, 'w') as f:
+        f.write('\n'.join(file_lines))
 
 def merge_flags(cur_flags: "list of current flags", new_flags: "list flags to edit"
         )-> 'Current flags "patched" with new ones as a dict {flag_name: modifier}':
@@ -177,13 +193,13 @@ def merge_flags(cur_flags: "list of current flags", new_flags: "list flags to ed
             except KeyError:
                 warning("You did not formerly set the %s use flag. No action needed" % flag[1])
             else:
-                verbose_changes[] = "Reset "+ flag[1]
+                verbose_changes.append("Reset "+ flag[1])
         else:
             useflags[flag[1]] = flag[0]
             if flag[0] == '+':
-                verbose_changes[] = "Set "+ flag[1]
+                verbose_changes.append("Set "+ flag[1])
             else:
-                verbose_changes[] = "Unset "+ flag[1]
+                verbose_changes.append("Unset "+ flag[1])
 
     return useflags, ', '.join(verbose_changes)
 
@@ -204,7 +220,8 @@ if __name__ == '__main__':
             flag = (modifier, flag[1:])
 
             if modifier not in USE_FLAG_MODIFIERS:
-                error("Invalid use flag modifier, expected one of '%s' before '%s'" % flag)
+                error("Invalid use flag modifier, expected one of '%s' before '%s'" % (
+                        USE_FLAG_MODIFIERS, flag[0]+flag[1]))
 
             flags.append(flag)
             iarg += 1
@@ -223,12 +240,19 @@ if __name__ == '__main__':
     except PackageUseError as e:
         error(e.message)
 
-    new_flags, comment = merge_flags(cur_flags, flags)
+    if flags:
+        new_flags, comment = merge_flags(cur_flags, flags)
 
-    comment = datetime.today().strftime(DATETIME_FORMAT) +' '+ comment + '\n'+ reason
+        comment = datetime.today().strftime(DATETIME_FORMAT) +' '+ comment
+        if reason:
+            comment += '\n'+ reason
 
-    try:
-        write_changes(atom, new_flags, comment)
-    except PackageUseError as e:
-        error(e.message)
+        try:
+            write_changes(atom, new_flags, comment)
+        except PackageUseError as e:
+            error(e.message)
+        except PermissionError:
+            error("You are not root!")
+    else:
+        print("Current flags: %r" % cur_flags)
 
