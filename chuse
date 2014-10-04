@@ -47,6 +47,14 @@ class AtomError(Exception):
 class PackageUseError(Exception):
     pass
 
+VERBOSITY_QUIET   = -1
+VERBOSITY_OUTPUT  = 0
+VERBOSITY_ERROR   = 1
+VERBOSITY_WARNING = 2
+VERBOSITY_DEBUG   = 3
+
+VERBOSITY = VERBOSITY_WARNING
+
 PACKAGE_USE_FILE_PATTERN = '/etc/portage/package.use/%(cat)s/%(pkg)s'
 
 USE_FLAG_MODIFIERS = '+-%'
@@ -68,15 +76,28 @@ def _colorize(text, color_code, bold=False):
 def _red(text, bold=False):
     return _colorize(text, 31, bold)
 
-def _orange(text, bold=False):
+def _yellow(text, bold=False):
     return _colorize(text, 33, bold)
 
+def _purple(text, bold=False):
+    return _colorize(text, 35, bold)
+
+def output(message):
+    if VERBOSITY >= VERBOSITY_OUTPUT:
+        sys.stdout.write("%s\n" % message)
+
 def error(message):
-    sys.stderr.write(_red("Error: %s\n" % message, bold=True))
+    if VERBOSITY >= VERBOSITY_ERROR:
+        sys.stderr.write(_red("Error: %s\n" % message, bold=True))
     sys.exit(1)
 
 def warning(message):
-    sys.stderr.write(_orange("Warning: %s\n" % message))
+    if VERBOSITY >= VERBOSITY_WARNING:
+        sys.stderr.write(_yellow("Warning: %s\n" % message))
+
+def debug(message):
+    if VERBOSITY >= VERBOSITY_DEBUG:
+        sys.stdout.write(_purple("Debug: %s\n" % message))
 
 def parse_atom(atom: "A raw atom as a string") -> "The atom parts as a dict":
     """Parse the given atom and split it to extract:
@@ -116,13 +137,17 @@ def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)"
     """
     useflags = []
 
+    debug("Reading current flags")
     try:
         """Fetch a line that matches the given atom"""
         with open(PACKAGE_USE_FILE_PATTERN % atom) as f:
+            debug("Raw atom is %s" % atom['raw'])
             pattern = re.compile('^'+ atom['raw'] +r'\s+([^\s].*)$')
-            for line in f.readline():
+            for line in f.readlines():
+                debug("Reading line : %s" % line)
                 match = pattern.match(line)
                 if match:
+                    debug("Line matches pattern")
                     raw_flags = re.sub(r'\s+', ' ', match.group(1))
                     for flag in raw_flags.split():
                         if flag[0] == '-':
@@ -157,7 +182,7 @@ def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)"
     try:
         with open(filename) as f:
             pattern = re.compile('^'+ atom['raw'] +r'\s+([^\s].*)$')
-            for line in f.readline():
+            for line in f.readlines():
                 if pattern.match(line):
                     file_lines.append(new_line)
                     found_existing_atom = True
@@ -175,8 +200,18 @@ def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)"
     if not found_existing_atom:
         file_lines.append(new_line)
 
+    # Concatenate lines
+    file_contents = ""
+    for line in file_lines:
+        line = line.strip('\n')
+        if line != '':
+            line += '\n'
+            if line[0] != '#':
+                line += '\n'
+        file_contents += line
+
     with open(filename, 'w') as f:
-        f.write('\n'.join(file_lines))
+        f.write(file_contents)
 
 def merge_flags(cur_flags: "list of current flags", new_flags: "list flags to edit"
         )-> 'Current flags "patched" with new ones as a dict {flag_name: modifier}':
@@ -254,5 +289,5 @@ if __name__ == '__main__':
         except PermissionError:
             error("You are not root!")
     else:
-        print("Current flags: %r" % cur_flags)
+        output("Current flags: %s" % ' '.join(''.join(f) for f in cur_flags))
 
