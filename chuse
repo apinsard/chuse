@@ -64,6 +64,9 @@ DATETIME_FORMAT = "[%Y-%m-%dT%H:%M]"
 COLORS = True
 
 def _colorize(text, color_code, bold=False):
+    if not COLORS:
+        return text
+
     start = "\033["
     if bold:
         start += "1;"
@@ -289,5 +292,13 @@ if __name__ == '__main__':
         except PermissionError:
             error("You are not root!")
     else:
-        output("Current flags: %s" % ' '.join(''.join(f) for f in cur_flags))
+        try:
+            with open(PACKAGE_USE_FILE_PATTERN % atom) as f:
+                for line in f.readlines():
+                    line = line[:-1]
+                    if line != '' and line[0] == '#':
+                        line = _purple(line);
+                    output(line)
+        except FileNotFoundError:
+            output("No flag currently defined for %s" % atom['raw'])
 
