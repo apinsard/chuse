@@ -45,7 +45,12 @@ class AtomError(Exception):
     pass
 
 class PackageUseError(Exception):
-    pass
+    
+    def __init__(self, message=None):
+        if not message:
+            message = "Incompatible package.use hierarchy. Please run `chuse --reorganize` or set "\
+                + "PACKAGE_USE_FILE_PATTERN environment variable (see man chuse(1))."
+        self.message = message
 
 VERBOSITY_QUIET   = -1
 VERBOSITY_OUTPUT  = 0
@@ -55,7 +60,8 @@ VERBOSITY_DEBUG   = 3
 
 VERBOSITY = VERBOSITY_WARNING
 
-PACKAGE_USE_FILE_PATTERN = '/etc/portage/package.use/%(cat)s/%(pkg)s'
+PACKAGE_USE_FILE_PATTERN = os.environ.get('PACKAGE_USE_FILE_PATTERN',
+    '/etc/portage/package.use/%(cat)s/%(pkg)s')
 
 USE_FLAG_MODIFIERS = '+-%'
 
@@ -140,17 +146,13 @@ def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)"
     """
     useflags = []
 
-    debug("Reading current flags")
     try:
         """Fetch a line that matches the given atom"""
         with open(PACKAGE_USE_FILE_PATTERN % atom) as f:
-            debug("Raw atom is %s" % atom['raw'])
             pattern = re.compile('^'+ atom['raw'] +r'\s+([^\s].*)$')
             for line in f.readlines():
-                debug("Reading line : %s" % line)
                 match = pattern.match(line)
                 if match:
-                    debug("Line matches pattern")
                     raw_flags = re.sub(r'\s+', ' ', match.group(1))
                     for flag in raw_flags.split():
                         if flag[0] == '-':
@@ -161,7 +163,7 @@ def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)"
     except FileNotFoundError:
         pass # Then there is no flag for now
     except NotADirectory:
-        raise PackageUseError("Incompatible package.use hierarchy")
+        raise PackageUseError()
 
     return useflags
 
@@ -198,7 +200,7 @@ def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)"
         except FileExistsError:
             pass # Then we don't need to create it
     except NotADirectory:
-        raise PackageUseError("Incompatible package.use hierarchy")
+        raise PackageUseError()
 
     if not found_existing_atom:
         file_lines.append(new_line)
@@ -241,11 +243,19 @@ def merge_flags(cur_flags: "list of current flags", new_flags: "list flags to ed
 
     return useflags, ', '.join(verbose_changes)
 
+def reorganize():
+    warning("This feature is not yet implemented. Please reorganize your package.use hierarchy "
+        + "yourself before using chuse.")
+
 if __name__ == '__main__':
     try:
         atom = sys.argv[1]
     except IndexError:
         error("Expected at least one argument!")
+
+    if atom == '--reorganize':
+        reorganize()
+        sys.exit(0)
 
     reason = None
     flags = []
