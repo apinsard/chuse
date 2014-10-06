@@ -48,8 +48,9 @@ class PackageUseError(Exception):
     
     def __init__(self, message=None):
         if not message:
-            message = "Incompatible package.use hierarchy. Please run `chuse --reorganize` or set "\
-                + "PACKAGE_USE_FILE_PATTERN environment variable (see man chuse(1))."
+            message = "Incompatible package.use hierarchy. Please run:\n"\
+                + "    chuse --dump > ~/package.use.bak && chuse --load ~/package.use.bak\n"\
+                + "Or set PACKAGE_USE_FILE_PATTERN environment variable (see man chuse(1))."
         self.message = message
 
 VERBOSITY_QUIET   = -1
@@ -107,6 +108,9 @@ def warning(message):
 def debug(message):
     if VERBOSITY >= VERBOSITY_DEBUG:
         sys.stdout.write(_purple("Debug: %s\n" % message))
+
+def confirm(message):
+    return input(message +" [y/N] ").upper() == 'Y'
 
 def parse_atom(atom: "A raw atom as a string") -> "The atom parts as a dict":
     """Parse the given atom and split it to extract:
@@ -243,18 +247,39 @@ def merge_flags(cur_flags: "list of current flags", new_flags: "list flags to ed
 
     return useflags, ', '.join(verbose_changes)
 
-def reorganize():
-    warning("This feature is not yet implemented. Please reorganize your package.use hierarchy "
-        + "yourself before using chuse.")
+def dump(node):
+    contents = ''
+    if os.path.isdir(node):
+        for child in os.listdir(node):
+            contents += dump(os.path.join(node, child))
+    else:
+        with open(node) as f:
+            contents = f.read()
+    return contents
 
-if __name__ == '__main__':
+def load(filename):
+    warning("This operation will need to remove anything within /etc/portage/package.use in order "\
+            + "to load the new data.")
+    if not confirm("Would you actually like to truncate your package.use?"):
+        error("Process cancelled")
+    
+
+def main():
     try:
         atom = sys.argv[1]
     except IndexError:
         error("Expected at least one argument!")
 
-    if atom == '--reorganize':
-        reorganize()
+    if atom == '--dump':
+        output(dump('/etc/portage/package.use'))
+        sys.exit(0)
+
+    if atom == '--load':
+        try:
+            filename = sys.arg[2]
+        except IndexError:
+            error("Option --load expects a filename as second argument")
+        load(filename)
         sys.exit(0)
 
     reason = None
@@ -262,14 +287,13 @@ if __name__ == '__main__':
 
     iarg = 2
     try:
-        while sys.argv[iarg] != '--because':
+        while sys.argv[iarg] not in ['--because', '#']:
             flag = sys.argv[iarg]
+            if flag[0] not in USE_FLAG_MODIFIERS:
+                flag = USE_FLAG_MODIFIERS[0] + flag
+
             modifier = flag[0]
             flag = (modifier, flag[1:])
-
-            if modifier not in USE_FLAG_MODIFIERS:
-                error("Invalid use flag modifier, expected one of '%s' before '%s'" % (
-                        USE_FLAG_MODIFIERS, flag[0]+flag[1]))
 
             flags.append(flag)
             iarg += 1
@@ -312,3 +336,5 @@ if __name__ == '__main__':
         except FileNotFoundError:
             output("No flag currently defined for %s" % atom['raw'])
 
+if __name__ == '__main__':
+    main()
