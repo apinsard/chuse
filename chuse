@@ -14,28 +14,6 @@ package.{accept_keywords,env,keywords,license,mask,properties,unmask,use}. Basic
 only be useful for package.use. Other files are rarely modified, and editing them manually would
 probably do the job quite good enough.
 
-Usage:
-    chuse <atom> [<modifier><flag> ...] [--because <reason>]
-
-    atom:
-        [version-selector]<ebuild-cat>/<ebuild-pkg>[-<version>]
-        Obviously 'version-selector' and 'version' should never be set without the other.
-    version-selector:
-        One of : "=", ">", "<", ">=", "<=".
-    ebuild-cat:
-        An ebuild category (validity won't be checked).
-    ebuild-pkg:
-        An ebuild package (validity won't be checked).
-    version:
-        A version of the underlying package (validity won't be checked).
-    modifier:
-        One of : "-", "+", "%" (% means reset default).
-    flag:
-        A USE flag (validity won't be checked).
-    reason:
-        The reason why you changed these USE flags (so that you remember why you set this and if now
-        you can reset default for instance).
-
 """
 
 import os, re, sys
@@ -247,7 +225,8 @@ def merge_flags(cur_flags: "list of current flags", new_flags: "list flags to ed
 
     return useflags, ', '.join(verbose_changes)
 
-def dump(node):
+def dump(node: "A file or a folder to browse"
+        )-> "The content of the file or the concatenation of dumps of the folder's children":
     contents = ''
     if os.path.isdir(node):
         for child in os.listdir(node):
@@ -257,12 +236,11 @@ def dump(node):
             contents = f.read()
     return contents
 
-def load(filename):
+def load(filename: "The name of a file containing the backup rules to import."):
     warning("This operation will need to remove anything within /etc/portage/package.use in order "\
             + "to load the new data.")
     if not confirm("Would you actually like to truncate your package.use?"):
         error("Process cancelled")
-    
 
 def main():
     try:

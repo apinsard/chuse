@@ -39,8 +39,8 @@ PACKAGE\_USE\_FILE\_PATTERN examples:
     PACKAGE\_USE\_FILE\_PATTERN="/etc/portage/package.use/%(cat)s/%(pkg)s" # This is the default
     PACKAGE\_USE\_FILE\_PATTERN="/etc/portage/package.use/chuse" # One file dedicated to chuse
 
-`%(cat)s` and `%(pkg)s` would be respectively replaced by the category name and the name of the
-package for which you want to alter USE flags.
+`%(cat)s` and `%(pkg)s` would be respectively replaced by the category name and the package name of
+the atom you want to alter USE flags.
 
 #### If you want to adopt this hierarchy pattern
 
@@ -78,5 +78,12 @@ Usage
     reason:
         The reason why you changed these USE flags (so that you remember why you set this and if now
         you can reset default for instance).
+
+If no flag is specified, this will display the current rules matching the underlying atom.
+
+Examples
+--------
+
+Here are various typical examples.
 
 [1]: https://github.com/apinsard/sapher-overlay
