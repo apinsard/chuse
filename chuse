@@ -1,45 +1,55 @@
-#!/usr/bin/python3
-#-*-coding:UTF-8-*-
+#!/usr/bin/python
 # Distributed under the terms of the GNU General Public License v2
 
-"""chuse is a utility for Portage package manager (namely Gentoo Linux base systems). It enables you
-to edit USE flags for a particular ebuild. It is based on emod (https://github.com/Pyntony/emod), a
-tool I started to develop for the same purpose but that I never ended.
+"""chuse is a utility for Portage package manager.
+It enables you to edit USE flags for a particular ebuild. It is based on emod
+(https://github.com/Pyntony/emod), a tool I started to develop for the same
+purpose but that I never ended.
 
-"emod" was originally developped to avoid forgetting a ">" when running "echo app-dummy/example -qt
-gtk >> /etc/portage/package.use" for instance and the overwrite the file. 
+"emod" was originally developped to avoid forgetting a ">" when running
+"echo app-dummy/example -qt gtk >> /etc/portage/package.use" for instance and
+the overwrite the file.
 
-I decided to start over because I want this tool to be as much simple as possible. "emod" handles
-package.{accept_keywords,env,keywords,license,mask,properties,unmask,use}. Basically this tool will
-only be useful for package.use. Other files are rarely modified, and editing them manually would
+I decided to start over because I want this tool to be as much simple as
+possible. "emod" handles package.{accept_keywords,env,keywords,license,mask,
+properties,unmask,use}. Basically this tool will only be useful for
+package.use. Other files are rarely modified, and editing them manually would
 probably do the job quite good enough.
-
 """
 
-import os, re, sys
+
+import os
+import re
+import sys
 from datetime import datetime
+
 
 class AtomError(Exception):
     pass
 
+
 class PackageUseError(Exception):
-    
+
     def __init__(self, message=None):
         if not message:
-            message = "Incompatible package.use hierarchy. Please run:\n"\
-                + "    chuse --dump > ~/package.use.bak && chuse --load ~/package.use.bak\n"\
-                + "Or set PACKAGE_USE_FILE_PATTERN environment variable (see man chuse(1))."
+            message = ("Incompatible package.use hierarchy. Please run:\n"
+                       "    chuse --dump > ~/package.use.bak && chuse --load"
+                       "~/package.use.bak\n"
+                       "Or set PACKAGE_USE_FILE_PATTERN environment variable"
+                       "(see man chuse(1)).")
         self.message = message
 
-VERBOSITY_QUIET   = -1
-VERBOSITY_OUTPUT  = 0
-VERBOSITY_ERROR   = 1
+
+VERBOSITY_QUIET = -1
+VERBOSITY_OUTPUT = 0
+VERBOSITY_ERROR = 1
 VERBOSITY_WARNING = 2
-VERBOSITY_DEBUG   = 3
+VERBOSITY_DEBUG = 3
 
 VERBOSITY = VERBOSITY_WARNING
 
-PACKAGE_USE_FILE_PATTERN = os.environ.get('PACKAGE_USE_FILE_PATTERN',
+PACKAGE_USE_FILE_PATTERN = os.environ.get(
+    'PACKAGE_USE_FILE_PATTERN',
     '/etc/portage/package.use/%(cat)s/%(pkg)s')
 
 USE_FLAG_MODIFIERS = '+-%'
@@ -47,6 +57,7 @@ USE_FLAG_MODIFIERS = '+-%'
 DATETIME_FORMAT = "[%Y-%m-%dT%H:%M]"
 
 COLORS = True
+
 
 def _colorize(text, color_code, bold=False):
     if not COLORS:
@@ -61,38 +72,47 @@ def _colorize(text, color_code, bold=False):
 
     return start + text + end
 
+
 def _red(text, bold=False):
     return _colorize(text, 31, bold)
+
 
 def _yellow(text, bold=False):
     return _colorize(text, 33, bold)
 
+
 def _purple(text, bold=False):
     return _colorize(text, 35, bold)
+
 
 def output(message):
     if VERBOSITY >= VERBOSITY_OUTPUT:
         sys.stdout.write("%s\n" % message)
+
 
 def error(message):
     if VERBOSITY >= VERBOSITY_ERROR:
         sys.stderr.write(_red("Error: %s\n" % message, bold=True))
     sys.exit(1)
 
+
 def warning(message):
     if VERBOSITY >= VERBOSITY_WARNING:
         sys.stderr.write(_yellow("Warning: %s\n" % message))
+
 
 def debug(message):
     if VERBOSITY >= VERBOSITY_DEBUG:
         sys.stdout.write(_purple("Debug: %s\n" % message))
 
+
 def confirm(message):
-    return input(message +" [y/N] ").upper() == 'Y'
+    return input(message + " [y/N] ").upper() == 'Y'
+
 
 def parse_atom(atom: "A raw atom as a string") -> "The atom parts as a dict":
     """Parse the given atom and split it to extract:
-        
+
         - the version selector ;
         - the category name ;
         - the package name ;
@@ -106,7 +126,8 @@ def parse_atom(atom: "A raw atom as a string") -> "The atom parts as a dict":
     version_ptrn = r'(?P<version>[0-9]+(\.[0-9]+)*(-r[0-9]+)?)'
     slot_ptrn = r'(?P<slot>.*)'
 
-    pattern = '^'+selector_ptrn+'?'+cat_ptrn+'/'+pkg_ptrn+'(-'+version_ptrn+')?(:'+slot_ptrn+')?$'
+    pattern = '^' + selector_ptrn + '?' + cat_ptrn + '/' + pkg_ptrn + \
+        '(-' + version_ptrn + ')?(:' + slot_ptrn + ')?$'
 
     match = re.match(pattern, atom)
 
@@ -119,11 +140,18 @@ def parse_atom(atom: "A raw atom as a string") -> "The atom parts as a dict":
 
     return result
 
-def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)"
-        )-> "The current flags set by the user for this atom as a list of tuples":
-    """Look for existing flags formerly set by the user in /etc/portage/package.use
 
-    USE flags are returned as a list of 2-uples in the form ('+'|'-', 'flagname')
+def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)"
+                       )-> ("The current flags set by the user for this atom "
+                            "as a list of tuples"):
+    """Look for existing flags formerly set by the user in:
+
+        /etc/portage/package.use
+
+    USE flags are returned as a list of 2-uples in the form:
+
+        ('+'|'-', 'flagname')
+
     Eg. [('+', 'python'), ('-', 'php')]
     """
     useflags = []
@@ -131,7 +159,7 @@ def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)"
     try:
         """Fetch a line that matches the given atom"""
         with open(PACKAGE_USE_FILE_PATTERN % atom) as f:
-            pattern = re.compile('^'+ atom['raw'] +r'\s+([^\s].*)$')
+            pattern = re.compile('^' + atom['raw'] + r'\s+([^\s].*)$')
             for line in f.readlines():
                 match = pattern.match(line)
                 if match:
@@ -141,21 +169,23 @@ def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)"
                             useflags.append(('-', flag[1:]))
                         else:
                             useflags.append(('+', flag))
-                    break # Another matching line would be foolish
+                    break  # Another matching line would be foolish
     except FileNotFoundError:
-        pass # Then there is no flag for now
+        pass  # Then there is no flag for now
     except NotADirectory:
         raise PackageUseError()
 
     return useflags
 
-def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)"
-        , flags: "The USE flags to write (generated with `merge_flags`)"
-        , comment: "A comment about the changes made"):
+
+def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)",
+                  flags: ("The USE flags to write (generated with "
+                          "`merge_flags`)"),
+                  comment: "A comment about the changes made"):
     new_line = re.sub('(^)', '# ', comment, flags=re.MULTILINE)
-    
+
     new_line += "\n"+atom['raw']
-    for name,mod in flags.items():
+    for name, mod in flags.items():
         if mod == '+':
             new_line += " "+name
         else:
@@ -168,7 +198,7 @@ def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)"
 
     try:
         with open(filename) as f:
-            pattern = re.compile('^'+ atom['raw'] +r'\s+([^\s].*)$')
+            pattern = re.compile('^' + atom['raw'] + r'\s+([^\s].*)$')
             for line in f.readlines():
                 if pattern.match(line):
                     file_lines.append(new_line)
@@ -180,7 +210,7 @@ def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)"
         try:
             os.makedirs(os.path.dirname(filename))
         except FileExistsError:
-            pass # Then we don't need to create it
+            pass  # Then we don't need to create it
     except NotADirectory:
         raise PackageUseError()
 
@@ -200,8 +230,11 @@ def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)"
     with open(filename, 'w') as f:
         f.write(file_contents)
 
-def merge_flags(cur_flags: "list of current flags", new_flags: "list flags to edit"
-        )-> 'Current flags "patched" with new ones as a dict {flag_name: modifier}':
+
+def merge_flags(cur_flags: "list of current flags",
+                new_flags: "list flags to edit"
+                )-> ("Current flags \"patched\" with new ones as a dict "
+                     "{flag_name: modifier}"):
     useflags = {}
     verbose_changes = []
 
@@ -213,20 +246,23 @@ def merge_flags(cur_flags: "list of current flags", new_flags: "list flags to ed
             try:
                 del useflags[flag[1]]
             except KeyError:
-                warning("You did not formerly set the %s use flag. No action needed" % flag[1])
+                warning(("You did not formerly set the %s use flag. No action "
+                         "needed") % flag[1])
             else:
-                verbose_changes.append("Reset "+ flag[1])
+                verbose_changes.append("Reset " + flag[1])
         else:
             useflags[flag[1]] = flag[0]
             if flag[0] == '+':
-                verbose_changes.append("Set "+ flag[1])
+                verbose_changes.append("Set " + flag[1])
             else:
-                verbose_changes.append("Unset "+ flag[1])
+                verbose_changes.append("Unset " + flag[1])
 
     return useflags, ', '.join(verbose_changes)
 
+
 def dump(node: "A file or a folder to browse"
-        )-> "The content of the file or the concatenation of dumps of the folder's children":
+         )-> ("The content of the file or the concatenation of dumps of the "
+              "folder's children"):
     contents = ''
     if os.path.isdir(node):
         for child in os.listdir(node):
@@ -236,11 +272,13 @@ def dump(node: "A file or a folder to browse"
             contents = f.read()
     return contents
 
-def load(filename: "The name of a file containing the backup rules to import."):
-    warning("This operation will need to remove anything within /etc/portage/package.use in order "\
-            + "to load the new data.")
+
+def load(filename: "The name of a file containing the backup rules to import"):
+    warning("This operation will need to remove anything within "
+            "/etc/portage/package.use in order to load the new data.")
     if not confirm("Would you actually like to truncate your package.use?"):
         error("Process cancelled")
+
 
 def main():
     try:
@@ -276,7 +314,7 @@ def main():
             flags.append(flag)
             iarg += 1
     except IndexError:
-        pass # No reason given
+        pass  # No reason given
     else:
         reason = ' '.join(sys.argv[iarg+1:]) or "Because I can!"
 
@@ -293,9 +331,9 @@ def main():
     if flags:
         new_flags, comment = merge_flags(cur_flags, flags)
 
-        comment = datetime.today().strftime(DATETIME_FORMAT) +' '+ comment
+        comment = datetime.today().strftime(DATETIME_FORMAT) + ' ' + comment
         if reason:
-            comment += '\n'+ reason
+            comment += '\n' + reason
 
         try:
             write_changes(atom, new_flags, comment)
@@ -309,10 +347,11 @@ def main():
                 for line in f.readlines():
                     line = line[:-1]
                     if line != '' and line[0] == '#':
-                        line = _purple(line);
+                        line = _purple(line)
                     output(line)
         except FileNotFoundError:
             output("No flag currently defined for %s" % atom['raw'])
+
 
 if __name__ == '__main__':
     main()
