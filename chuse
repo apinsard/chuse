@@ -21,8 +21,8 @@ from shutil import rmtree
 __author__ = "Antoine Pinsard"
 __copyright__ = "Copyright (C) 2015 Antoine Pinsard"
 __credits__ = ["Antoine Pinsard"]
-__license__ = "GPLv2"
-__version__ = "1.0rc1"
+__license__ = "GPL-2"
+__version__ = "1.0"
 __maintainer__ = "Antoine Pinsard"
 __email__ = "antoine.pinsard@gmail.com"
 __status__ = "Production"

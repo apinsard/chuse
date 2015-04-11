@@ -1,0 +1,16 @@
+# Change Log
+
+## [1.0] - 2015-02-17
+### Added
+- package.use hierarchy dump
+- load a dumped file to the package.use hierarchy
+- Man pages
+- Usage
+- Version information
+- ChangeLog file
+
+### Changed
+- Default modifier is now "+" instead of error on missing modifier
+- Made PEP8 compliant
+
+[1.0]: https://github.com/apinsard/chuse/compare/0.1...1.0rc1
