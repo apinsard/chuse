@@ -34,10 +34,10 @@ environment variable (eg. in your bashrc).
 
 PACKAGE\_USE\_FILE\_PATTERN examples:
 
-    PACKAGE\_USE\_FILE\_PATTERN="/etc/portage/package.use" # All in one file
-    PACKAGE\_USE\_FILE\_PATTERN="/etc/portage/package.use/%(cat)s" # One file per category
-    PACKAGE\_USE\_FILE\_PATTERN="/etc/portage/package.use/%(cat)s/%(pkg)s" # This is the default
-    PACKAGE\_USE\_FILE\_PATTERN="/etc/portage/package.use/chuse" # One file dedicated to chuse
+    PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use" # All in one file
+    PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/%(cat)s" # One file per category
+    PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/%(cat)s/%(pkg)s" # This is the default
+    PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/chuse" # One file dedicated to chuse
 
 `%(cat)s` and `%(pkg)s` would be respectively replaced by the category name and the package name of
 the atom you want to alter USE flags.
@@ -80,10 +80,5 @@ Usage
         you can reset default for instance).
 
 If no flag is specified, this will display the current rules matching the underlying atom.
-
-Examples
---------
-
-Here are various typical examples.
 
 [1]: https://github.com/apinsard/sapher-overlay
