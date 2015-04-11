@@ -1,20 +1,13 @@
 #!/usr/bin/python
 # Distributed under the terms of the GNU General Public License v2
 
-"""chuse is a utility for Portage package manager.
-It enables you to edit USE flags for a particular ebuild. It is based on emod
-(https://github.com/Pyntony/emod), a tool I started to develop for the same
-purpose but that I never ended.
+"""Portage USE flags manager.
+Chuse stands for CHange USE. This ia a Portage tool for managing your local USE
+flags (ie. set within /etc/portage/package.use).
 
-"emod" was originally developped to avoid forgetting a ">" when running
-"echo app-dummy/example -qt gtk >> /etc/portage/package.use" for instance and
-the overwrite the file.
-
-I decided to start over because I want this tool to be as much simple as
-possible. "emod" handles package.{accept_keywords,env,keywords,license,mask,
-properties,unmask,use}. Basically this tool will only be useful for
-package.use. Other files are rarely modified, and editing them manually would
-probably do the job quite good enough.
+In constrast to several equivalents, it is designed with a very specific goal:
+Make your `/etc/portage/package.use` easier. This means chuse does not handle
+other `package.*` and focuses on `package.use`.
 """
 
 
@@ -24,11 +17,24 @@ import sys
 from datetime import datetime
 
 
+__author__ = "Antoine Pinsard"
+__copyright__ = ("Distributed under the terms of the "
+                 "GNU General Public License v2")
+__credits__ = ["Antoine Pinsard"]
+__license__ = "GPLv2"
+__version__ = "0.2a.dev1"
+__maintainer__ = "Antoine Pinsard"
+__email__ = "antoine.pinsard@gmail.com"
+__status__ = "Development"
+
+
 class AtomError(Exception):
+    """Error related to an atom."""
     pass
 
 
 class PackageUseError(Exception):
+    """Error related to package.use hierarchy."""
 
     def __init__(self, message=None):
         if not message:
@@ -182,14 +188,15 @@ def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)",
                   flags: ("The USE flags to write (generated with "
                           "`merge_flags`)"),
                   comment: "A comment about the changes made"):
+    """Write USE flag changes to package.use """
     new_line = re.sub('(^)', '# ', comment, flags=re.MULTILINE)
 
-    new_line += "\n"+atom['raw']
+    new_line += "\n" + atom['raw']
     for name, mod in flags.items():
         if mod == '+':
-            new_line += " "+name
+            new_line += " " + name
         else:
-            new_line += " "+mod+name
+            new_line += " " + mod + name
 
     file_lines = []
     found_existing_atom = False
@@ -235,6 +242,7 @@ def merge_flags(cur_flags: "list of current flags",
                 new_flags: "list flags to edit"
                 )-> ("Current flags \"patched\" with new ones as a dict "
                      "{flag_name: modifier}"):
+    """Merge current flags with new ones."""
     useflags = {}
     verbose_changes = []
 
@@ -263,6 +271,7 @@ def merge_flags(cur_flags: "list of current flags",
 def dump(node: "A file or a folder to browse"
          )-> ("The content of the file or the concatenation of dumps of the "
               "folder's children"):
+    """Concatenate package.use hierarchy."""
     contents = ''
     if os.path.isdir(node):
         for child in os.listdir(node):
@@ -274,6 +283,7 @@ def dump(node: "A file or a folder to browse"
 
 
 def load(filename: "The name of a file containing the backup rules to import"):
+    """Load a backup package.use file to /etc/portage/package.use."""
     warning("This operation will need to remove anything within "
             "/etc/portage/package.use in order to load the new data.")
     if not confirm("Would you actually like to truncate your package.use?"):
@@ -303,7 +313,7 @@ def main():
 
     iarg = 2
     try:
-        while sys.argv[iarg] not in ['--because', '#']:
+        while sys.argv[iarg] != '--because':
             flag = sys.argv[iarg]
             if flag[0] not in USE_FLAG_MODIFIERS:
                 flag = USE_FLAG_MODIFIERS[0] + flag
