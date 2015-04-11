@@ -1,0 +1,80 @@
+.TH chuse 1 "2015-04-11" "version 1.0" "https://github.com/apinsard/chuse"
+.SH NAME
+chuse - Portage USE flags manager
+
+.SH SYNOPSIS
+chuse \fIatom\fR [[\fImodifier\fR]\fIflag\fR ...] [--because \fIreason\fR]
+.PP
+    Alter USE flags.
+.PP
+chuse \fIatom\fR
+.PP
+    Show USE flags
+.PP
+chuse (-h|--help)
+.PP
+chuse (-v|--version)
+.PP
+chuse --dump
+.PP
+chuse --load \fIfile\fR
+
+.SH DESCRIPTION
+Chuse stands for CHange USE. This is a Portage tool for managing your
+local USE flags (ie. set within /etc/portage/package.use).
+
+.PP
+In constrast to several equivalents, it is designed with a very specific
+goal: Make your \fI/etc/portage/package.use\fR easier. This means chuse does
+not handle other \fIpackage.*\fR and focuses on \fIpackage.use\fR.
+
+.SH OPTIONS
+
+\fIatom\fR:
+    [\fIversion-selector\fR]\fIebuild-cat\fR/\fIebuil-pkg\fR[-\fIversion\fR][:\fIslot\fR]
+    Obviously, \fIversion-selector\fR and \fIversion\fR should never be set without the other.
+.PP
+\fIversion-selector\fR:
+    One of: =, >, <, >=, <=.
+.PP
+\fIebuild-cat\fR:
+    An ebuild category (validity won't be checked)
+.PP
+\fIebuild-pkg\fR:
+    An ebuild package (validity won't be checked)
+.PP
+\fIversion\fR:
+    A version of the underlying package (validity won't be checked).
+.PP
+\fIslot\fR:
+    A slot of the underlying package (validity won't be checked).
+.PP
+\fImodifier\fR:
+    One of: +, -, %. (% means reset default). If omitted, + is assumed.
+.PP
+\fIflag\fR:
+    A USE flag (validity won't be checked).
+.PP
+\fIreason\fR:
+    The reason why you changed these US flags (so that you remember why you set this and if you can reset default in the future for instance.
+.PP
+\fB--dump\fR
+    Print all contents of /etc/portage/package.use.
+.PP
+\fB-h --help\fR
+    Print help.
+.PP
+\fB--load\fR \fIfile\fR
+    Load a backup file to the /etc/portage/package.use hierarchy.
+.PP
+\fB-v --version\fR
+    Print version information.
+
+.SH BUGS
+Please report bugs on github https://github.com/apinsard/chuse/issues
+
+.SH AUTHOR
+Antoine Pinsard <antoine.pinsard@gmail.com>
+
+.SH SEE ALSO
+\fBportage\fR(5)
