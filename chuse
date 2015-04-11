@@ -2,7 +2,7 @@
 # Distributed under the terms of the GNU General Public License v2
 
 """Portage USE flags manager.
-Chuse stands for CHange USE. This ia a Portage tool for managing your local USE
+Chuse stands for CHange USE. This is a Portage tool for managing your local USE
 flags (ie. set within /etc/portage/package.use).
 
 In constrast to several equivalents, it is designed with a very specific goal:
