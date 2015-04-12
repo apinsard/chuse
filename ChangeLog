@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.0.1] - 2015-02-17
+### Added
+- Example section to the man page
+
 ## [1.0] - 2015-02-17
 ### Added
 - package.use hierarchy dump
@@ -13,4 +17,5 @@
 - Default modifier is now "+" instead of error on missing modifier
 - Made PEP8 compliant
 
+[1.0.1]: https://github.com/apinsard/chuse/compare/1.0...1.0.1
 [1.0]: https://github.com/apinsard/chuse/compare/0.1...1.0
