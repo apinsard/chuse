@@ -48,14 +48,14 @@ You will have to backup your current USE flags in a file and reorganize the pack
 To achieve this, issue the following commands:
 
     # chuse --dump > /root/package.use.bak # Concat all your rules in one file
-    # chuse --load /root/package.use.bak # Parse the file to organize your package.use
+    # chuse --load /root/package.use.bak # Export the backup to the new hierarchy
 
 To avoid mistakes, `chuse --load` will ask you before erasing `/etc/portage/package.use`.
 
 Usage
 -----
 
-    chuse <atom> [[modifier]<flag> ...] [(--because|#) <reason>]
+    chuse <atom> [[modifier]<flag> ...] [(--because) <reason>]
 
     atom:
         [version-selector]<ebuild-cat>/<ebuild-pkg>[-<version>][:<slot>]
@@ -83,12 +83,20 @@ If no flag is specified, this will display the current rules matching the underl
 Examples
 --------
 
-Show the flags you altered for firefox:
-
-    chuse www-client/firefox
-
 Add system-cairo, remove system-icu and reset system-jpeg for firefox >= 37.0.1:
 
-    chuse ">=www-client/firefox-37.0.1" system-cairo -system-icu %system-jpeg
+    $ sudo chuse ">=www-client/firefox-37.0.1" +system-cairo -system-icu %system-jpeg
+
+Add offensive for sudo:
+
+    $ sudo chuse app-admin/sudo offensive --because much cooler
+
+Show the flags you altered for sudo:
+
+    $ chuse app-admin/sudo
+    # [2015-04-18T11:54] Unset sendmail
+    # [2015-04-18T11:56] Set offensive
+    # much cooler
+    app-admin/sudo offensive -sendmail
 
 [1]: https://github.com/apinsard/sapher-overlay

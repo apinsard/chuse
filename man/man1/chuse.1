@@ -95,13 +95,21 @@ the PACKAGE_USE_FILE_PATTERN environment variable (eg. in your bashrc).
 .PP
     PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/chuse" # One file dedicated to chuse
 .PP
-Show the flags you altered for firefox:
+Add system-cairo, remove system-icu and reset system-jpeg for firefox >= 37.0.1:
 .PP
-    chuse www-client/firefox
+    $ sudo chuse ">=www-client/firefox-37.0.1" +system-cairo -system-icu %system-jpeg
 .PP
-Add system-cairo, remove system-icu and reset system-jpeg for firefox 37.0.1:
+Add offensive for sudo:
 .PP
-    chuse "=www-client/firefox-37.0.1" system-cairo -system-icu %system-jpeg
+    $ sudo chuse app-admin/sudo offensive --because much cooler
+.PP
+Show the flags you altered for sudo:
+.PP
+    $ chuse app-admin/sudo
+    # [2015-04-18T11:54] Unset sendmail
+    # [2015-04-18T11:56] Set offensive
+    # much cooler
+    app-admin/sudo offensive -sendmail
 
 .SH BUGS
 Please report bugs on github https://github.com/apinsard/chuse/issues
