@@ -5,10 +5,15 @@ chuse - Portage USE flags manager
 =head1 SYNOPSIS
 
 S<chuse I<atom> [[I<modifier>]I<flag> ...] [--because I<reason>]>
+
 S<chuse I<atom>>
+
 S<chuse (-h|--help)>
+
 S<chuse (-v|--version)>
+
 S<chuse --dump>
+
 S<chuse --load I<file>>
 
 =head1 DESCRIPTION
