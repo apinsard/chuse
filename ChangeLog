@@ -7,6 +7,9 @@
 ### Removed
 - Raw man page
 
+### Changed
+- Shebang line to python3
+
 ## [1.0.1] - 2015-04-12
 ### Added
 - Example section to the man page
