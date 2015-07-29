@@ -1,6 +1,6 @@
 # Change Log
 
-## [master] - 2015-05-03
+## [1.0.2] - 2015-07-29
 ### Added
 - POD documentation format
 
@@ -9,6 +9,9 @@
 
 ### Changed
 - Shebang line to python3
+
+### Fixed
+- Regex matching atoms
 
 ## [1.0.1] - 2015-04-12
 ### Added
@@ -27,6 +30,6 @@
 - Default modifier is now "+" instead of error on missing modifier
 - Made PEP8 compliant
 
-[master]: https://github.com/apinsard/chuse/compare/1.0.1...master
+[1.0.2]: https://github.com/apinsard/chuse/compare/1.0.1...1.0.2
 [1.0.1]: https://github.com/apinsard/chuse/compare/1.0...1.0.1
 [1.0]: https://github.com/apinsard/chuse/compare/0.1...1.0
