@@ -186,8 +186,8 @@ def parse_atom(atom: "A raw atom as a string") -> "The atom parts as a dict":
     parts = ['selector', 'cat', 'pkg', 'version', 'slot']
     selector_ptrn = r'(?P<selector>>=|<=|<|=|>)'
     cat_ptrn = r'(?P<cat>[a-z0-9]+(-[a-z0-9]+)?)'
-    pkg_ptrn = r'(?P<pkg>[a-z0-9]+(-[a-z0-9]+)*)'
-    version_ptrn = r'(?P<version>[0-9]+(\.[0-9]+)*(-r[0-9]+)?)'
+    pkg_ptrn = r'(?P<pkg>[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\+?)'
+    version_ptrn = r'(?P<version>[0-9]+(\.[0-9]+)*(_[a-zA-Z]+)?([0-9]+)?(-r[0-9]+)?[a-z]?)'
     slot_ptrn = r'(?P<slot>.*)'
 
     pattern = '^' + selector_ptrn + '?' + cat_ptrn + '/' + pkg_ptrn + \
