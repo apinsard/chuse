@@ -90,8 +90,7 @@ Print version information
 =head1 EXAMPLES
 
 By default, chuse uses the following hierarchy pattern:
-
-    /etc/portage/package.use/I<cat-name>/I<pkg-name>
+/etc/portage/package.use/I<cat-name>/I<pkg-name>
 
 That is, one directory per package category, one file per package.
 
