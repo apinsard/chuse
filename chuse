@@ -11,26 +11,23 @@ other `package.*` and focuses on `package.use`.
 """
 
 
+from datetime import datetime
 import os
 import re
-import sys
-from datetime import datetime
 from shutil import rmtree
+import sys
+
+from appi.atom import QueryAtom, AtomError
 
 
 __author__ = "Antoine Pinsard"
-__copyright__ = "Copyright (C) 2015 Antoine Pinsard"
+__copyright__ = "Copyright (C) 2017 Antoine Pinsard"
 __credits__ = ["Antoine Pinsard"]
 __license__ = "GPL-2"
-__version__ = "1.0.1"
+__version__ = "2.0.0"
 __maintainer__ = "Antoine Pinsard"
 __email__ = "antoine.pinsard@gmail.com"
 __status__ = "Production"
-
-
-class AtomError(Exception):
-    """Error related to an atom."""
-    pass
 
 
 class PackageUseError(Exception):
@@ -56,7 +53,7 @@ VERBOSITY = VERBOSITY_WARNING
 
 PACKAGE_USE_FILE_PATTERN = os.environ.get(
     'PACKAGE_USE_FILE_PATTERN',
-    '/etc/portage/package.use/%(cat)s/%(pkg)s')
+    '/etc/portage/package.use/{cat}/{pkg}')
 
 USE_FLAG_MODIFIERS = '+-%'
 
@@ -66,46 +63,30 @@ COLORS = True
 
 
 def usage():
-    uinfo = ("chuse <atom> [[modifier]<flag> ...] [--because <reason>]\n"
-             "    Alter use flags.\n"
-             "chuse <atom>\n"
-             "    Print current flags set and history.\n"
-             "chuse (-h|--help)\n"
-             "    Print this help."
-             "chuse (-v|--version)\n"
-             "    Print version information.\n"
-             "chuse --dump\n"
-             "    Print all contents of /etc/portage/package.use\n"
-             "chuse --load <file>\n"
-             "    Load a backup file to the /etc/portage/package.use "
-             "hierarchy.\n\n"
-             "atom:\n"
-             "    [version-selector]<ebuild-cat>/<ebuil-pkg>[-<version>]"
-             "[:<slot>]\n"
-             "    Obviously, 'version-selector' and 'version' should never be "
-             "set without the other.\n"
-             "version-selector:\n"
-             "    One of: =, >, <, >=, <=.\n"
-             "ebuild-cat:\n"
-             "    An ebuild category (validity won't be checked)\n"
-             "ebuild-pkg:\n"
-             "    An ebuild package (validity won't be checked)\n"
-             "version:\n"
-             "    A version of the underlying package (validity won't be "
-             "checked).\n"
-             "slot:\n"
-             "    A slot of the underlying package (validity won't be "
-             "checked).\n"
-             "modifier:\n"
-             "    One of: +, -, %. (% means reset default). If omitted, "
-             "+ is assumed.\n"
-             "flag:\n"
-             "    A USE flag (validity won't be checked).\n"
-             "reason:\n"
-             "    The reason why you changed these US flags (so that you "
-             "remember why you set this\n"
-             "    and if you can reset default in the future for instance.\n"
-             )
+    uinfo = (
+        "chuse [-f|--force] <atom> [[modifier]<flag> ...] [--because <reason>]\n"
+         "    Alter use flags. By default, if the given atom doesn't match any existing ebuild,\n"
+         "    an error will be raised. Use -f/--force option to disable this behavior.\n"
+         "chuse <atom>\n"
+         "    Print current flags set and history.\n"
+         "chuse (-h|--help)\n"
+         "    Print this help."
+         "chuse (-v|--version)\n"
+         "    Print version information.\n"
+         "chuse --dump\n"
+         "    Print all contents of /etc/portage/package.use\n"
+         "chuse --load <file>\n"
+         "    Load a backup file to the /etc/portage/package.use hierarchy.\n\n"
+         "atom:\n"
+         "    A valid package atom.\n"
+         "modifier:\n"
+         "    One of: +, -, %. (% means reset default). If omitted, + is assumed.\n"
+         "flag:\n"
+         "    A USE flag (validity won't be checked).\n"
+         "reason:\n"
+         "    The reason why you changed these US flags (so that you remember why you set this\n"
+         "    and if you can reset default in the future for instance.\n"
+    )
     sys.stdout.write(uinfo)
 
 
@@ -151,63 +132,34 @@ def _purple(text, bold=False):
 
 def output(message):
     if VERBOSITY >= VERBOSITY_OUTPUT:
-        sys.stdout.write("%s\n" % message)
+        sys.stdout.write("{}\n".format(message))
 
 
 def error(message):
     if VERBOSITY >= VERBOSITY_ERROR:
-        sys.stderr.write(_red("Error: %s\n" % message, bold=True))
+        sys.stderr.write(_red("Error: {}\n".format(message), bold=True))
     sys.exit(1)
 
 
 def warning(message):
     if VERBOSITY >= VERBOSITY_WARNING:
-        sys.stderr.write(_yellow("Warning: %s\n" % message))
+        sys.stderr.write(_yellow("Warning: {}\n".format(message)))
 
 
 def debug(message):
     if VERBOSITY >= VERBOSITY_DEBUG:
-        sys.stdout.write(_purple("Debug: %s\n" % message))
+        sys.stdout.write(_purple("Debug: {}\n".format(message)))
 
 
 def confirm(message):
     return input(message + " [y/N] ").upper() == 'Y'
 
 
-def parse_atom(atom: "A raw atom as a string") -> "The atom parts as a dict":
-    """Parse the given atom and split it to extract:
-
-        - the version selector ;
-        - the category name ;
-        - the package name ;
-        - the version ;
-        - the slot.
-    """
-    parts = ['selector', 'cat', 'pkg', 'version', 'slot']
-    selector_ptrn = r'(?P<selector>>=|<=|<|=|>)'
-    cat_ptrn = r'(?P<cat>[a-z0-9]+(-[a-z0-9]+)?)'
-    pkg_ptrn = r'(?P<pkg>[a-zA-Z0-9]+(-[a-zA-Z0-9]+)*\+?)'
-    version_ptrn = r'(?P<version>[0-9]+(\.[0-9]+)*(_[a-zA-Z]+)?([0-9]+)?(-r[0-9]+)?[a-z]?)'
-    slot_ptrn = r'(?P<slot>.*)'
-
-    pattern = '^' + selector_ptrn + '?' + cat_ptrn + '/' + pkg_ptrn + \
-        '(-' + version_ptrn + ')?(:' + slot_ptrn + ')?$'
-
-    match = re.match(pattern, atom)
-
-    if not match:
-        raise AtomError("Invalid atom!")
-
-    result = {'raw': atom}
-    for part in parts:
-        result[part] = match.group(part)
-
-    return result
+def get_filename(atom):
+    return PACKAGE_USE_FILE_PATTERN.format(cat=atom.category, pkg=atom.package)
 
 
-def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)"
-                       )-> ("The current flags set by the user for this atom "
-                            "as a list of tuples"):
+def read_current_flags(atom):
     """Look for existing flags formerly set by the user in:
 
         /etc/portage/package.use
@@ -222,8 +174,8 @@ def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)"
 
     try:
         """Fetch a line that matches the given atom"""
-        with open(PACKAGE_USE_FILE_PATTERN % atom) as f:
-            pattern = re.compile('^' + atom['raw'] + r'\s+([^\s].*)$')
+        with open(get_filename(atom)) as f:
+            pattern = re.compile(r'^{}\s+([^\s].*)$'.format(re.escape(str(atom))))
             for line in f.readlines():
                 match = pattern.match(line)
                 if match:
@@ -242,14 +194,11 @@ def read_current_flags(atom: "An atom as a dict (parsed with `parse_atom`)"
     return useflags
 
 
-def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)",
-                  flags: ("The USE flags to write (generated with "
-                          "`merge_flags`)"),
-                  comment: "A comment about the changes made"):
+def write_changes(atom, flags, comment):
     """Write USE flag changes to package.use """
     new_line = re.sub('(^\s*)', '# ', comment, flags=re.MULTILINE)
 
-    new_line += "\n" + atom['raw']
+    new_line += "\n{}".format(atom)
     for name, mod in flags.items():
         if mod == '+':
             new_line += " " + name
@@ -259,11 +208,11 @@ def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)",
     file_lines = []
     found_existing_atom = False
 
-    filename = PACKAGE_USE_FILE_PATTERN % atom
+    filename = get_filename(atom)
 
     try:
         with open(filename) as f:
-            pattern = re.compile('^' + atom['raw'] + r'\s+([^\s].*)$')
+            pattern = re.compile(r'^{}\s+([^\s].*)$'.format(re.escape(str(atom))))
             for line in f.readlines():
                 if pattern.match(line):
                     file_lines.append(new_line)
@@ -296,10 +245,7 @@ def write_changes(atom: "An atom as a dict (parsed with `parse_atom`)",
         f.write(file_contents)
 
 
-def merge_flags(cur_flags: "list of current flags",
-                new_flags: "list flags to edit"
-                )-> ("Current flags \"patched\" with new ones as a dict "
-                     "{flag_name: modifier}"):
+def merge_flags(cur_flags, new_flags):
     """Merge current flags with new ones."""
     useflags = {}
     verbose_changes = []
@@ -312,8 +258,8 @@ def merge_flags(cur_flags: "list of current flags",
             try:
                 del useflags[flag[1]]
             except KeyError:
-                warning(("You did not formerly set the %s use flag. No action "
-                         "needed") % flag[1])
+                warning(
+                    "You did not formerly set the {} use flag. No action needed".format(flag[1]))
             else:
                 verbose_changes.append("Reset " + flag[1])
         else:
@@ -326,9 +272,7 @@ def merge_flags(cur_flags: "list of current flags",
     return useflags, ', '.join(verbose_changes)
 
 
-def dump(node: "A file or a folder to browse"
-         )-> ("The content of the file or the concatenation of dumps of the "
-              "folder's children"):
+def dump(node):
     """Concatenate package.use hierarchy."""
     contents = ''
     if os.path.isdir(node):
@@ -340,7 +284,7 @@ def dump(node: "A file or a folder to browse"
     return contents
 
 
-def load(filename: "The name of a file containing the backup rules to import"):
+def load(filename):
     """Load a backup package.use file to /etc/portage/package.use."""
     warning("This operation will need to remove anything within "
             "/etc/portage/package.use in order to load the new data.")
@@ -366,7 +310,10 @@ def load(filename: "The name of a file containing the backup rules to import"):
                 comments.append(line[1:])
             else:
                 parts = line.split()
-                atom = parse_atom(parts[0])
+                try:
+                    atom = QueryAtom(parts[0])
+                except AtomError as e:
+                    error(e)
                 flags = []
                 i = 1
                 try:
@@ -427,8 +374,13 @@ def main():
 
     reason = None
     flags = []
-
     iarg = 2
+
+    force = atom in ['-f', '--force']
+    if force:
+        atom = sys.argv[iarg]
+        iarg += 1
+
     try:
         while sys.argv[iarg] != '--because':
             flag = sys.argv[iarg]
@@ -446,9 +398,19 @@ def main():
         reason = ' '.join(sys.argv[iarg+1:]) or "Because I can!"
 
     try:
-        atom = parse_atom(atom)
+        atom = QueryAtom(atom, strict=False)
     except AtomError as e:
-        error(e.message)
+        error(e)
+
+    matching_ebuilds = atom.list_matching_ebuilds()
+    if not matching_ebuilds and not force:
+        error("This atom does not match any existing ebuild. Use --force "
+              "option to proceed anyway.")
+    if not atom.category:
+        categories = set(e.category for e in matching_ebuilds)
+        if len(categories) != 1:
+            error("This atom is ambiguous, please specify the package category")
+        atom.category = categories.pop()
 
     try:
         cur_flags = read_current_flags(atom)
@@ -470,14 +432,14 @@ def main():
             error("You are not root!")
     else:
         try:
-            with open(PACKAGE_USE_FILE_PATTERN % atom) as f:
+            with open(get_filename(atom)) as f:
                 for line in f.readlines():
                     line = line[:-1]
                     if line != '' and line[0] == '#':
                         line = _purple(line)
                     output(line)
         except FileNotFoundError:
-            output("No flag currently defined for %s" % atom['raw'])
+            output("No flag currently defined for {}".format(atom))
 
 
 if __name__ == '__main__':
