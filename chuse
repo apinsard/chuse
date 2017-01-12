@@ -460,8 +460,8 @@ def main():
                         parts = line.split(' ')
                         line = ' '.join(
                             [_green(parts[0], True)] +
-                            [_red(p, True) for p in parts[1:] if p[0] != '-'] +
-                            [_blue(p, True) for p in parts[1:] if p[0] == '-']
+                            sorted(_red(p, True) for p in parts[1:] if p[0] != '-') +
+                            sorted(_blue(p, True) for p in parts[1:] if p[0] == '-')
                         )
                     output(line)
         except FileNotFoundError:
