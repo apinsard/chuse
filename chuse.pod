@@ -4,7 +4,7 @@ chuse - Portage USE flags manager
 
 =head1 SYNOPSIS
 
-S<chuse I<atom> [[I<modifier>]I<flag> ...] [--because I<reason>]>
+S<chuse [-f|--force] I<atom> [[I<modifier>]I<flag> ...] [--because I<reason>]>
 
 S<chuse I<atom>>
 
@@ -31,30 +31,7 @@ not handle other I<package.*> and focuses on I<package.use>.
 
 =item I<atom>
 
-[I<version-selector>]I<ebuild-cat>/I<ebuild-pkg>[-I<version>][:I<slot>]
-
-Obviously, I<version-selector> and I<version> should never be set without the
-other.
-
-=item I<version-selector>
-
-One of: =, >, <, >, >=, <=.
-
-=item I<ebuild-cat>
-
-An ebuild category (validity won't be checked)
-
-=item I<ebuild-pkg>
-
-An ebuild package (validity won't be checked)
-
-=item I<version>
-
-A version of the underlying package (validity won't be checked).
-
-=item I<slot>
-
-A slot of the underlying package (validity won't be checked)
+A valid package atom.
 
 =item I<modifier>
 
@@ -68,6 +45,10 @@ A USE flag (validity won't be checked).
 
 The reason why you changed these USE flags (so that you remember why you set
 this and if you can reset default in the future for instance).
+
+=item B<-f --force>
+
+Force writting changes even if no ebuild seems to satisfy the given atom.
 
 =item B<--dump>
 
@@ -90,22 +71,22 @@ Print version information
 =head1 EXAMPLES
 
 By default, chuse uses the following hierarchy pattern:
-/etc/portage/package.use/I<cat-name>/I<pkg-name>
+/etc/portage/package.use/<category-name>/<package-name>
 
 That is, one directory per package category, one file per package.
 
 If you don't use this hierarchy pattern and want to adopt it:
 
     chuse --dump > /root/package.use.bak # Concat all your rules in one file
-    chuse --load /root/package.use.back # Export the backup to the new hierarchy
+    chuse --load /root/package.use.bak # Export the backup to the new hierarchy
 
 If you cant to setup your own hierarchy pattern, you can change the pattern by
 explicitely setting the PACKAGE_USE_FILE_PATTERN environment variable (eg. in
 your bashrc).
 
     PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use" # All in one file
-    PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/%(cat)s" # One file per category
-    PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/%(cat)s/%(pkg)s" # This is the default
+    PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/{cat}" # One file per category
+    PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/{cat}/{pkg}" # This is the default
     PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/chuse" # One file dedicated to chuse
 
 Add system-cairo, remove system-icu and reset system-jpeg for firefox >= 37.0.1:
@@ -123,6 +104,26 @@ Show the flags you altered for sudo:
     # much cooler
     app-admin/sudo offensive -sendmail
 
+You can omit the package category:
+
+    $ sudo chuse qtile +dbus
+    $ chuse '=qtile-0.10.6'
+    # [2017-01-12T07:34] Set dbus
+    x11-wm/qtile dbus
+
+Obviously this won't work if the package name is ambiguous:
+
+    $ chuse screen
+    Error: This atom is ambiguous, please specify the package category
+
+As well, the existence of ebuilds matching the atom is checked. You can use
+the --force (shortly -f) option to disable this behavior:
+
+    $ sudo chuse unexisting/package +foo -bar
+    Error: This atom does not match any existing ebuild. Use --force option
+    to proceed anyway
+    $ sudo chuse -f unexisting/package +foo -bar
+
 =head1 BUGS
 
 Please report bugs on github L<https://github.com/apinsard/chuse/issues>
@@ -133,4 +134,4 @@ Antoine Pinsard <antoine.pinsard@gmail.com>
 
 =head1 SEE ALSO
 
-L<portage(5)>
+L<portage> L<ebuild>

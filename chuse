@@ -24,7 +24,7 @@ __author__ = "Antoine Pinsard"
 __copyright__ = "Copyright (C) 2017 Antoine Pinsard"
 __credits__ = ["Antoine Pinsard"]
 __license__ = "GPL-2"
-__version__ = "2.0.0"
+__version__ = "1.1.0"
 __maintainer__ = "Antoine Pinsard"
 __email__ = "antoine.pinsard@gmail.com"
 __status__ = "Production"
@@ -66,7 +66,8 @@ def usage():
     uinfo = (
         "chuse [-f|--force] <atom> [[modifier]<flag> ...] [--because <reason>]\n"
          "    Alter use flags. By default, if the given atom doesn't match any existing ebuild,\n"
-         "    an error will be raised. Use -f/--force option to disable this behavior.\n"
+         "    an error will be raised. Use -f/--force option to disable this behavior. If no flag\n"
+         "    is specified, the current rules matching the underlying atom will be displayed.\n"
          "chuse <atom>\n"
          "    Print current flags set and history.\n"
          "chuse (-h|--help)\n"

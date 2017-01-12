@@ -13,9 +13,9 @@ a clean structure. On the other hand, you rarely have more than 10 lines in your
 Installation
 ------------
 
-Chuse is available from the [sapher overlay][1].
+Chuse is available from the [sapher overlay][1]. It is also available in the main Funtoo tree.
 
-Once you have added this overlay through layman or whatever, just emerge `chuse`.
+Once you have added this overlay, just emerge `chuse`.
 
     # emerge -av chuse
 
@@ -55,30 +55,29 @@ To avoid mistakes, `chuse --load` will ask you before erasing `/etc/portage/pack
 Usage
 -----
 
-    chuse <atom> [[modifier]<flag> ...] [(--because) <reason>]
+    chuse [-f|--force] <atom> [[modifier]<flag> ...] [--because <reason>]
+        Alter use flags. By default, if the given atom doesn't match any existing ebuild,
+        an error will be raised. Use -f/--force option to disable this behavior.  If no flag
+        is specified, the current rules matching the underlying atom will be displayed.
+    chuse <atom>
+        Print current flags set and history.
+    chuse (-h|--help)
+        Print this help.chuse (-v|--version)
+        Print version information.
+    chuse --dump
+        Print all contents of /etc/portage/package.use
+    chuse --load <file>
+        Load a backup file to the /etc/portage/package.use hierarchy.
 
     atom:
-        [version-selector]<ebuild-cat>/<ebuild-pkg>[-<version>][:<slot>]
-        Obviously 'version-selector' and 'version' should never be set without the other.
-    version-selector:
-        One of : "=", ">", "<", ">=", "<=".
-    ebuild-cat:
-        An ebuild category (validity won't be checked).
-    ebuild-pkg:
-        An ebuild package (validity won't be checked).
-    version:
-        A version of the underlying package (validity won't be checked).
-    slot:
-        A slot of the underlying package (validity won't be checked.
+        A valid package atom.
     modifier:
-        One of : "+", "-", "%" (% means reset default). If omitted, "+" is assumed.
+        One of: +, -, %. (% means reset default). If omitted, + is assumed.
     flag:
         A USE flag (validity won't be checked).
     reason:
-        The reason why you changed these USE flags (so that you remember why you set this and if now
-        you can reset default for instance).
-
-If no flag is specified, this will display the current rules matching the underlying atom.
+        The reason why you changed these US flags (so that you remember why you set this
+        and if you can reset default in the future for instance.
 
 Examples
 --------
@@ -98,5 +97,25 @@ Show the flags you altered for sudo:
     # [2015-04-18T11:56] Set offensive
     # much cooler
     app-admin/sudo offensive -sendmail
+
+You can omit the package category:
+
+    $ sudo chuse qtile +dbus
+    $ chuse '=qtile-0.10.6'
+    # [2017-01-12T07:34] Set dbus
+    x11-wm/qtile dbus
+
+Obviously this won't work if the package name is ambiguous:
+
+    $ chuse screen
+    Error: This atom is ambiguous, please specify the package category
+
+As well, the existence of ebuilds matching the atom is checked. You can use
+the --force (shortly -f) option to disable this behavior:
+
+    $ sudo chuse unexisting/package +foo -bar
+    Error: This atom does not match any existing ebuild. Use --force option
+    to proceed anyway
+    $ sudo chuse -f unexisting/package +foo -bar
 
 [1]: https://github.com/apinsard/sapher-overlay
