@@ -129,8 +129,16 @@ def _red(text, bold=False):
     return _colorize(text, 31, bold)
 
 
+def _green(text, bold=False):
+    return _colorize(text, 32, bold)
+
+
 def _yellow(text, bold=False):
     return _colorize(text, 33, bold)
+
+
+def _blue(text, bold=False):
+    return _colorize(text, 34, bold)
 
 
 def _purple(text, bold=False):
@@ -448,6 +456,13 @@ def main():
                     line = line[:-1]
                     if line != '' and line[0] == '#':
                         line = _purple(line)
+                    else:
+                        parts = line.split(' ')
+                        line = ' '.join(
+                            [_green(parts[0], True)] +
+                            [_red(p, True) for p in parts[1:] if p[0] != '-'] +
+                            [_blue(p, True) for p in parts[1:] if p[0] == '-']
+                        )
                     output(line)
         except FileNotFoundError:
             output("No flag currently defined for {}".format(atom))

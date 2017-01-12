@@ -3,6 +3,7 @@
 ## [1.1] - 2017-01-12
 ### Added
 - Possibility to configure file pattern in /etc/chuse.conf
+- Colors in use flags display
 
 ### Changed
 - Check that atoms match existing ebuilds to avoid typos
