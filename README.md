@@ -35,12 +35,20 @@ environment variable (eg. in your bashrc).
 PACKAGE\_USE\_FILE\_PATTERN examples:
 
     PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use" # All in one file
-    PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/%(cat)s" # One file per category
-    PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/%(cat)s/%(pkg)s" # This is the default
+    PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/{cat}" # One file per category
+    PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/{cat}/{pkg}" # This is the default
     PACKAGE_USE_FILE_PATTERN="/etc/portage/package.use/chuse" # One file dedicated to chuse
 
-`%(cat)s` and `%(pkg)s` would be respectively replaced by the category name and the package name of
+`{cat}` and `{pkg}` will be respectively replaced by the category name and the package name of
 the atom you want to alter USE flags.
+
+You can also define the package.use file pattern in `/etc/chuse.conf`, which might be more
+convenient for permanent usage.
+
+`/etc/chuse.conf` file example:
+
+    [package.use]
+      file-pattern = /etc/portage/package.use/{cat}
 
 #### If you want to adopt this hierarchy pattern
 

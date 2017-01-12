@@ -11,6 +11,7 @@ other `package.*` and focuses on `package.use`.
 """
 
 
+from configparser import ConfigParser
 from datetime import datetime
 import os
 import re
@@ -51,9 +52,14 @@ VERBOSITY_DEBUG = 3
 
 VERBOSITY = VERBOSITY_WARNING
 
-PACKAGE_USE_FILE_PATTERN = os.environ.get(
-    'PACKAGE_USE_FILE_PATTERN',
-    '/etc/portage/package.use/{cat}/{pkg}')
+PACKAGE_USE_FILE_PATTERN = os.environ.get('PACKAGE_USE_FILE_PATTERN')
+if not PACKAGE_USE_FILE_PATTERN:
+    config = ConfigParser()
+    config.read('/etc/chuse.conf')
+    if 'package.use' in config:
+        PACKAGE_USE_FILE_PATTERN = config['package.use'].get('file-pattern')
+if not PACKAGE_USE_FILE_PATTERN:
+    PACKAGE_USE_FILE_PATTERN = '/etc/portage/package.use/{cat}/{pkg}'
 
 USE_FLAG_MODIFIERS = '+-%'
 
