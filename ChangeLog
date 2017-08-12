@@ -1,5 +1,10 @@
 # Change Log
 
+## [1.2] - 2017-08-12
+### Changed
+- Check that ebuilds matched by the atom accept the given useflags to avoid
+  typos
+
 ## [1.1] - 2017-01-12
 ### Added
 - Possibility to configure file pattern in /etc/chuse.conf
@@ -42,6 +47,8 @@
 - Default modifier is now "+" instead of error on missing modifier
 - Made PEP8 compliant
 
-[1.0.2]: https://github.com/apinsard/chuse/compare/1.0.1...1.0.2
-[1.0.1]: https://github.com/apinsard/chuse/compare/1.0...1.0.1
-[1.0]: https://github.com/apinsard/chuse/compare/0.1...1.0
+[1.2]: https://gitlab.com/apinsard/chuse/compare/1.1...1.2
+[1.1]: https://gitlab.com/apinsard/chuse/compare/1.0.2...1.1
+[1.0.2]: https://gitlab.com/apinsard/chuse/compare/1.0.1...1.0.2
+[1.0.1]: https://gitlab.com/apinsard/chuse/compare/1.0...1.0.1
+[1.0]: https://gitlab.com/apinsard/chuse/compare/0.1...1.0

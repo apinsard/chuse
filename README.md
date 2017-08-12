@@ -13,7 +13,7 @@ a clean structure. On the other hand, you rarely have more than 10 lines in your
 Installation
 ------------
 
-Chuse is available from the [sapher overlay][1]. It is also available in the main Funtoo tree.
+Chuse is available from [flora overlay][1]. It is also available in the main Funtoo tree.
 
 Once you have added this overlay, just emerge `chuse`.
 
@@ -65,8 +65,9 @@ Usage
 
     chuse [-f|--force] <atom> [[modifier]<flag> ...] [--because <reason>]
         Alter use flags. By default, if the given atom doesn't match any existing ebuild,
-        an error will be raised. Use -f/--force option to disable this behavior.  If no flag
-        is specified, the current rules matching the underlying atom will be displayed.
+        or if one of the given useflags doesn't seem to exist, an error will be raised.
+        Use -f/--force option to disable this behavior.  If no flag is specified, the
+        current rules matching the underlying atom will be displayed.
     chuse <atom>
         Print current flags set and history.
     chuse (-h|--help)
@@ -123,7 +124,16 @@ the --force (shortly -f) option to disable this behavior:
 
     $ sudo chuse unexisting/package +foo -bar
     Error: This atom does not match any existing ebuild. Use --force option
-    to proceed anyway
+    to proceed anyway.
     $ sudo chuse -f unexisting/package +foo -bar
 
-[1]: https://github.com/apinsard/sapher-overlay
+As of version 1.2, useflags existence is also checked:
+
+    $ sudo chuse dev-db/postgresql python -fanfan_la_tulipe dartagnan
+    Error: No ebuild matched by the given atom accepts such use flags:
+    dartagnan, fanfan_la_tulipe. Make sure you did not make a typo, or use
+    --force option to proceed anyway.
+    $ sudo chuse -f dev-db/postgresql python -fanfan_la_tulipe dartagnan
+
+
+[1]: https://github.com/funtoo/flora

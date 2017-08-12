@@ -25,7 +25,7 @@ __author__ = "Antoine Pinsard"
 __copyright__ = "Copyright (C) 2017 Antoine Pinsard"
 __credits__ = ["Antoine Pinsard"]
 __license__ = "GPL-2"
-__version__ = "1.1"
+__version__ = "1.2"
 __maintainer__ = "Antoine Pinsard"
 __email__ = "antoine.pinsard@gmail.com"
 __status__ = "Production"
@@ -72,8 +72,9 @@ def usage():
     uinfo = (
         "chuse [-f|--force] <atom> [[modifier]<flag> ...] [--because <reason>]\n"
          "    Alter use flags. By default, if the given atom doesn't match any existing ebuild,\n"
-         "    an error will be raised. Use -f/--force option to disable this behavior. If no flag\n"
-         "    is specified, the current rules matching the underlying atom will be displayed.\n"
+         "    or if one of the given useflags doesn't seem to exist, an error will be raised.\n"
+         "    Use -f/--force option to disable this behavior. If no flag is specified, the\n"
+         "    current rules matching the underlying atom will be displayed.\n"
          "chuse <atom>\n"
          "    Print current flags set and history.\n"
          "chuse (-h|--help)\n"
@@ -98,7 +99,7 @@ def usage():
 
 
 def version_info():
-    webpage = "https://github.com/apinsard/chuse"
+    webpage = "https://gitlab.com/apinsard/chuse"
     vinfo = ("Chuse version %(version)s, %(copyright)s\n"
              "Chuse comes with ABSOLUTELY NO WARRANTY\n"
              "This is free software, and you are welcome to redistribute it\n"
@@ -203,7 +204,7 @@ def read_current_flags(atom):
                     break  # Another matching line would be foolish
     except FileNotFoundError:
         pass  # Then there is no flag for now
-    except NotADirectory:
+    except NotADirectoryError:
         raise PackageUseError()
 
     return useflags
@@ -244,7 +245,7 @@ def write_changes(atom, flags, comment):
             os.makedirs(os.path.dirname(filename))
         except FileExistsError:
             pass  # Then we don't need to create it
-    except NotADirectory:
+    except NotADirectoryError:
         raise PackageUseError()
 
     if not found_existing_atom:
@@ -442,6 +443,16 @@ def main():
         comment = datetime.today().strftime(DATETIME_FORMAT) + ' ' + comment
         if reason:
             comment += '\n' + reason
+
+        if not force:
+            unexisting_flags = set(new_flags.keys()).difference(
+                atom.list_possible_useflags())
+            if unexisting_flags:
+                error((
+                    "No ebuild matched by the given atom accepts such use "
+                    "flags: {}. Make sure you did not make a typo, or use "
+                    "--force option to proceed anyway."
+                ).format(', '.join(unexisting_flags)))
 
         try:
             write_changes(atom, new_flags, comment)

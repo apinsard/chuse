@@ -48,7 +48,8 @@ this and if you can reset default in the future for instance).
 
 =item B<-f --force>
 
-Force writting changes even if no ebuild seems to satisfy the given atom.
+Force writting changes even if no ebuild seems to satisfy the given atom or
+none of the matched ebuilds seems to accept one of the given useflags.
 
 =item B<--dump>
 
@@ -130,12 +131,20 @@ the --force (shortly -f) option to disable this behavior:
 
     $ sudo chuse unexisting/package +foo -bar
     Error: This atom does not match any existing ebuild. Use --force option
-    to proceed anyway
+    to proceed anyway.
     $ sudo chuse -f unexisting/package +foo -bar
+
+As of version 1.2, useflags existence is also checked:
+
+    $ sudo chuse dev-db/postgresql python -fanfan_la_tulipe dartagnan
+    Error: No ebuild matched by the given atom accepts such use flags:
+    dartagnan, fanfan_la_tulipe. Make sure you did not make a typo, or use
+    --force option to proceed anyway.
+    $ sudo chuse -f dev-db/postgresql python -fanfan_la_tulipe dartagnan
 
 =head1 BUGS
 
-Please report bugs on github L<https://github.com/apinsard/chuse/issues>
+Please report bugs on gitlab L<https://gitlab.com/apinsard/chuse/issues>
 
 =head1 AUTHOR
 
@@ -143,7 +152,7 @@ Antoine Pinsard <antoine.pinsard@gmail.com>
 
 =head1 VERSION
 
-1.1
+1.2
 
 =head1 SEE ALSO
 
